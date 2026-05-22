@@ -1,4 +1,5 @@
 import { ArrowRight, Bot, Shield, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -19,9 +20,9 @@ export default async function LandingPage({ searchParams }: PageProps) {
           Agentic.
         </div>
         <nav>
-          <button className="px-6 py-2 rounded-full border border-slate-700 bg-slate-800/50 backdrop-blur hover:bg-slate-700 hover:text-cyan-400 transition-all duration-300 font-semibold text-sm">
+          <Link href="/signin" className="px-6 py-2 rounded-full border border-slate-700 bg-slate-800/50 backdrop-blur hover:bg-slate-700 hover:text-cyan-400 transition-all duration-300 font-semibold text-sm">
             Sign In
-          </button>
+          </Link>
         </nav>
       </header>
 

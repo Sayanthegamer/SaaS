@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL('/?status=success', request.url), 303);
   } catch (error: any) {
     console.error('Early access registration failed:', error);
-    return new NextResponse('Internal Server Error: Registration failed.', { status: 500 });
+    const errorMessage = error?.message || JSON.stringify(error) || 'Unknown error';
+    return new NextResponse(`Internal Server Error: Registration failed. Details: ${errorMessage}`, { status: 500 });
   }
 }
