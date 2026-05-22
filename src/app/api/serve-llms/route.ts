@@ -6,11 +6,11 @@ let supabaseClient: any = null;
 function getSupabase() {
   if (!supabaseClient) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-    if (!supabaseUrl || !supabaseUrl.startsWith('http') || !supabaseKey) {
-      throw new Error('Invalid Supabase URL or Key');
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseUrl.startsWith('http') || !serviceRoleKey) {
+      throw new Error('Invalid Supabase URL or Service Role Key');
     }
-    supabaseClient = createClient(supabaseUrl, supabaseKey);
+    supabaseClient = createClient(supabaseUrl, serviceRoleKey);
   }
   return supabaseClient;
 }
