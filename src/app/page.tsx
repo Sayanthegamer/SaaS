@@ -21,6 +21,7 @@ export default function LandingPage() {
             <a href="#features" className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors hidden sm:block">Features</a>
             <a href="#how-it-works" className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors hidden sm:block">How it works</a>
             <a href="#faq" className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors hidden sm:block">FAQ</a>
+            <Link href="/docs" className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors">Docs</Link>
             <Link href="/signin" className="text-sm text-zinc-400 hover:text-white transition-colors">Log in</Link>
             <Link href="/signup" className="text-sm font-medium bg-white text-zinc-950 px-4 py-1.5 rounded-md hover:bg-zinc-200 active:scale-[0.98] transition-all">
               Get started

@@ -8,6 +8,11 @@ export interface PageMetadata {
   description: string;
   headings?: string[];
   features?: string[];
+  paragraphs?: string[];
+  tables?: string[];
+  links?: { text: string; url: string }[];
+  faqs?: { question: string; answer: string }[];
+  productInfo?: { name?: string; price?: string; currency?: string; description?: string };
 }
 
 export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
@@ -58,24 +63,172 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
       const root = parse(html);
       
       let title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
-      let description = root.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+      let description = root.querySelector('meta[name="description"]')?.getAttribute('content') || 
+                        root.querySelector('meta[property="og:description"]')?.getAttribute('content') || 
+                        root.querySelector('meta[name="twitter:description"]')?.getAttribute('content') || '';
 
-      // Extract headings (h2, h3)
-      const headings = root.querySelectorAll('h2, h3')
-        .map(h => h.text.trim())
-        .filter(t => t.length > 5 && t.length < 80)
-        .slice(0, 4);
+      // Extract headings (h1, h2, h3) - up to 8 for detail
+      const headings = root.querySelectorAll('h1, h2, h3')
+        .map(h => h.text.trim().replace(/\s+/g, ' '))
+        .filter(t => t.length > 5 && t.length < 100)
+        .slice(0, 8);
 
-      // Extract lists (li) as highlights/features
+      // Extract list items (li) - up to 6 detailed items
       const features: string[] = [];
       root.querySelectorAll('li').forEach(li => {
-        const text = li.text.trim();
-        if (text.length > 10 && text.length < 100 && features.length < 3) {
+        const text = li.text.trim().replace(/\s+/g, ' ');
+        if (
+          text.length > 15 && 
+          text.length < 150 && 
+          features.length < 6 && 
+          !features.includes(text) &&
+          !/home|pricing|docs|login|sign in|sign up|dashboard|register|privacy|terms/i.test(text)
+        ) {
           features.push(text);
         }
       });
 
-      // SPA fallback skipped to prevent Vercel bundle bloat (local Puppeteer is not supported on Vercel Serverless).
+      // Extract paragraphs (paragraphs) - up to 3 descriptive paragraphs
+      const paragraphs: string[] = [];
+      root.querySelectorAll('p').forEach(p => {
+        const text = p.text.trim().replace(/\s+/g, ' ');
+        if (
+          text.length > 60 && 
+          text.length < 350 && 
+          paragraphs.length < 3 && 
+          !/cookie|privacy|copyright|rights reserved|agree/i.test(text)
+        ) {
+          paragraphs.push(text);
+        }
+      });
+
+      // Extract tables and convert to Markdown
+      const tables: string[] = [];
+      root.querySelectorAll('table').forEach(table => {
+        if (tables.length >= 2) return;
+        const rows = table.querySelectorAll('tr');
+        if (rows.length === 0) return;
+        
+        const mdRows: string[][] = [];
+        rows.slice(0, 8).forEach(row => {
+          const cells = row.querySelectorAll('th, td')
+            .slice(0, 5)
+            .map(c => c.text.trim().replace(/\s+/g, ' '));
+          if (cells.length > 0) {
+            mdRows.push(cells);
+          }
+        });
+        
+        if (mdRows.length > 0) {
+          const maxCols = Math.max(...mdRows.map(r => r.length));
+          const formatRow = (cells: string[]) => {
+            const padded = [...cells, ...Array(maxCols - cells.length).fill('')];
+            return `| ${padded.join(' | ')} |`;
+          };
+          let markdownTable = formatRow(mdRows[0]) + '\n';
+          markdownTable += `| ${Array(maxCols).fill('---').join(' | ')} |\n`;
+          mdRows.slice(1).forEach(row => {
+            markdownTable += formatRow(row) + '\n';
+          });
+          tables.push(markdownTable.trim());
+        }
+      });
+
+      // Extract high-value outbound resource links
+      const linksMap = new Map<string, string>();
+      const allowedDomains = [
+        'github.com', 'discord.gg', 'discord.com', 'twitter.com', 'x.com',
+        'npmjs.com', 'pypi.org', 'youtube.com', 'chrome.google.com',
+        'play.google.com', 'apps.apple.com'
+      ];
+      
+      root.querySelectorAll('a').forEach(a => {
+        const href = a.getAttribute('href')?.trim();
+        const text = a.text.trim().replace(/\s+/g, ' ');
+        if (href && href.startsWith('http')) {
+          try {
+            const urlObj = new URL(href);
+            const isHighValue = allowedDomains.some(d => urlObj.hostname.endsWith(d)) || 
+                                urlObj.hostname.startsWith('docs.') || 
+                                urlObj.hostname.startsWith('api.') ||
+                                urlObj.hostname.startsWith('blog.');
+            
+            if (isHighValue && !linksMap.has(href) && linksMap.size < 8) {
+              linksMap.set(href, text || urlObj.hostname);
+            }
+          } catch (_) {}
+        }
+      });
+      const links = Array.from(linksMap.entries()).map(([url, text]) => ({ text, url }));
+
+      // Extract JSON-LD Schema data
+      const faqs: { question: string; answer: string }[] = [];
+      let productInfo: any = undefined;
+      
+      root.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        try {
+          const json = JSON.parse(script.text.trim());
+          
+          const extractFaq = (obj: any) => {
+            if (!obj) return;
+            if (obj['@type'] === 'FAQPage' && obj.mainEntity) {
+              const entities = Array.isArray(obj.mainEntity) ? obj.mainEntity : [obj.mainEntity];
+              entities.forEach((entity: any) => {
+                if (entity['@type'] === 'Question') {
+                  const question = entity.name || entity.text || '';
+                  const answerEntity = entity.acceptedAnswer;
+                  const answer = answerEntity?.text || answerEntity?.description || '';
+                  if (question && answer && faqs.length < 5) {
+                    faqs.push({
+                      question: question.trim(),
+                      answer: answer.replace(/<[^>]*>/g, '').trim()
+                    });
+                  }
+                }
+              });
+            }
+          };
+          
+          const extractProduct = (obj: any) => {
+            if (!obj) return;
+            if ((obj['@type'] === 'Product' || obj['@type'] === 'SoftwareApplication') && !productInfo) {
+              const name = obj.name || '';
+              const desc = obj.description || '';
+              let price = '';
+              let currency = '';
+              if (obj.offers) {
+                const offers = Array.isArray(obj.offers) ? obj.offers[0] : obj.offers;
+                price = offers.price || '';
+                currency = offers.priceCurrency || '';
+              }
+              productInfo = {
+                name: name.trim(),
+                price: String(price).trim(),
+                currency: currency.trim(),
+                description: desc.trim()
+              };
+            }
+          };
+          
+          const traverse = (obj: any) => {
+            if (Array.isArray(obj)) {
+              obj.forEach(traverse);
+            } else if (typeof obj === 'object' && obj !== null) {
+              extractFaq(obj);
+              extractProduct(obj);
+              for (const k in obj) {
+                if (typeof obj[k] === 'object') {
+                  traverse(obj[k]);
+                }
+              }
+            }
+          };
+          
+          traverse(json);
+        } catch (_) {}
+      });
+
+      // SPA fallback warning
       if ((root.querySelector('body')?.text || '').trim().length < 500) {
         console.warn('SPA detected for URL:', url, '- metadata might be incomplete.');
       }
@@ -88,7 +241,12 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
         title: title.trim(), 
         description: description.trim(),
         headings: headings.length > 0 ? headings : undefined,
-        features: features.length > 0 ? features : undefined
+        features: features.length > 0 ? features : undefined,
+        paragraphs: paragraphs.length > 0 ? paragraphs : undefined,
+        tables: tables.length > 0 ? tables : undefined,
+        links: links.length > 0 ? links : undefined,
+        faqs: faqs.length > 0 ? faqs : undefined,
+        productInfo
       };
     } catch (e) {
       return null;
@@ -122,6 +280,24 @@ export function compileLlmsTxt(domainName: string, pages: PageMetadata[]): { mar
       entry += `  - **Overview**: ${page.description}\n`;
     }
     
+    if (page.productInfo && page.productInfo.name) {
+      entry += `  - **Product Details**:\n`;
+      entry += `    - Name: ${page.productInfo.name}\n`;
+      if (page.productInfo.description) {
+        entry += `    - Description: ${page.productInfo.description}\n`;
+      }
+      if (page.productInfo.price) {
+        entry += `    - Price: ${page.productInfo.price} ${page.productInfo.currency || ''}\n`;
+      }
+    }
+
+    if (page.paragraphs && page.paragraphs.length > 0) {
+      entry += `  - **Key Content Summary**:\n`;
+      for (const p of page.paragraphs) {
+        entry += `    - ${p}\n`;
+      }
+    }
+    
     if (page.headings && page.headings.length > 0) {
       entry += `  - **Key Sections**:\n`;
       for (const h of page.headings) {
@@ -135,10 +311,34 @@ export function compileLlmsTxt(domainName: string, pages: PageMetadata[]): { mar
         entry += `    - ${f}\n`;
       }
     }
+
+    if (page.tables && page.tables.length > 0) {
+      entry += `  - **Data Tables**:\n`;
+      for (const table of page.tables) {
+        const indentedTable = table.split('\n').map(line => `    ${line}`).join('\n');
+        entry += `${indentedTable}\n`;
+      }
+    }
+
+    if (page.faqs && page.faqs.length > 0) {
+      entry += `  - **FAQ**:\n`;
+      for (const faq of page.faqs) {
+        entry += `    - **Q**: ${faq.question}\n`;
+        entry += `      **A**: ${faq.answer}\n`;
+      }
+    }
+
+    if (page.links && page.links.length > 0) {
+      entry += `  - **External Links**:\n`;
+      for (const link of page.links) {
+        entry += `    - [${link.text}](${link.url})\n`;
+      }
+    }
+    
     entry += `\n`;
     
-    if (countTokens(markdown + entry) > 2800) {
-      markdown += `\n> [!NOTE]\n> Some pages were truncated to remain within the token limit.`;
+    if (countTokens(markdown + entry) > 7500) {
+      markdown += `\n> [!NOTE]\n> Some pages or details were truncated to remain within the 7,500 token limit.`;
       break; 
     }
     markdown += entry;

@@ -37,6 +37,12 @@ export default function DashboardLayout({
           >
             WebMCP
           </Link>
+          <Link
+            href="/docs"
+            className="text-sm text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors px-5 py-2 rounded-md"
+          >
+            Docs & Guide
+          </Link>
         </nav>
 
         <div className="mt-auto p-2">
