@@ -15,7 +15,7 @@ export default function LandingPage() {
               <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
               <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
             </svg>
-            <span className="text-sm font-bold text-white tracking-tight">llmify</span>
+            <span className="text-sm font-bold text-white tracking-tight">crlcontxt</span>
           </Link>
           <nav className="flex items-center gap-6">
             <a href="#features" className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors hidden sm:block">Features</a>
@@ -41,7 +41,7 @@ export default function LandingPage() {
             speak to AI
           </h1>
           <p className="mt-6 text-base sm:text-lg text-zinc-400 leading-relaxed max-w-xl mx-auto animate-in delay-2">
-            LLMify generates structured <code className="text-zinc-300 font-mono text-sm bg-zinc-900/80 px-1.5 py-0.5 rounded border border-zinc-800">llms.txt</code> files 
+            CrlContxt generates structured <code className="text-zinc-300 font-mono text-sm bg-zinc-900/80 px-1.5 py-0.5 rounded border border-zinc-800">llms.txt</code> files 
             from your site, deploys them at the edge, and shows you exactly which AI bots are reading your content.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center items-center animate-in delay-3">
@@ -62,13 +62,13 @@ export default function LandingPage() {
       <section id="features" className="py-32 px-6 scroll-mt-14">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-20">
-            <p className="text-xs font-semibold text-zinc-500 tracking-widest uppercase mb-3">What is LLMify</p>
+            <p className="text-xs font-semibold text-zinc-500 tracking-widest uppercase mb-3">What is CrlContxt</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight">
               Your website&apos;s AI translator
             </h2>
             <p className="mt-4 text-base sm:text-lg text-zinc-400 leading-relaxed">
               AI agents don&apos;t browse like humans. They need structured, token-efficient summaries. 
-              LLMify creates them automatically and tracks every interaction.
+              CrlContxt creates them automatically and tracks every interaction.
             </p>
           </ScrollReveal>
 
@@ -153,7 +153,7 @@ export default function LandingPage() {
       <section className="py-32 px-6">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal className="max-w-2xl mb-16">
-            <p className="text-xs font-semibold text-zinc-500 tracking-widest uppercase mb-3">Why LLMify</p>
+            <p className="text-xs font-semibold text-zinc-500 tracking-widest uppercase mb-3">Why CrlContxt</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight">
               Built differently
             </h2>
@@ -251,7 +251,7 @@ export default function LandingPage() {
               Industry-backed protocols
             </h2>
             <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed mb-16">
-              LLMify implements the <strong className="text-zinc-200">llms.txt</strong> open standard 
+              CrlContxt implements the <strong className="text-zinc-200">llms.txt</strong> open standard 
               and <strong className="text-zinc-200">Model Context Protocol</strong> — the same foundations 
               adopted by Anthropic, OpenAI, and the broader AI ecosystem.
             </p>
@@ -308,7 +308,7 @@ export default function LandingPage() {
                 Be found by the next generation of search
               </h2>
               <p className="mt-4 text-base sm:text-lg text-zinc-400 leading-relaxed">
-                Traditional SEO optimizes for Google. LLMify optimizes for AI search — ChatGPT, Perplexity, Claude. 
+                Traditional SEO optimizes for Google. CrlContxt optimizes for AI search — ChatGPT, Perplexity, Claude. 
                 When users ask AI about your industry, your site should be the answer.
               </p>
               <Link href="/signup" className="group inline-flex items-center gap-2 mt-8 text-sm font-semibold text-white hover:text-zinc-300 transition-colors">
@@ -374,7 +374,7 @@ export default function LandingPage() {
                 <ChevronDown size={16} className="text-zinc-600 chevron group-hover:text-zinc-300" />
               </summary>
               <p className="mt-3 text-sm text-zinc-500 leading-relaxed pr-8">
-                No. LLMify gives you a tiny edge script. Drop it as Vercel middleware or a Cloudflare Worker. Your existing site stays untouched.
+                No. CrlContxt gives you a tiny edge script. Drop it as Vercel middleware or a Cloudflare Worker. Your existing site stays untouched.
               </p>
             </details>
 
@@ -400,7 +400,7 @@ export default function LandingPage() {
 
             <details className="group py-6">
               <summary className="flex items-center justify-between text-zinc-200 font-medium hover:text-white transition-colors">
-                Is LLMify free?
+                Is CrlContxt free?
                 <ChevronDown size={16} className="text-zinc-600 chevron group-hover:text-zinc-300" />
               </summary>
               <p className="mt-3 text-sm text-zinc-500 leading-relaxed pr-8">
@@ -414,7 +414,7 @@ export default function LandingPage() {
                 <ChevronDown size={16} className="text-zinc-600 chevron group-hover:text-zinc-300" />
               </summary>
               <p className="mt-3 text-sm text-zinc-500 leading-relaxed pr-8">
-                Yes. Even if your SPA renders nothing server-side, LLMify extracts title and meta tags from the HTML response. The llms.txt file bridges the gap bots can&apos;t cross alone.
+                Yes. Even if your SPA renders nothing server-side, CrlContxt extracts title and meta tags from the HTML response. The llms.txt file bridges the gap bots can&apos;t cross alone.
               </p>
             </details>
           </ScrollReveal>
@@ -451,7 +451,7 @@ export default function LandingPage() {
                 <circle cx="16" cy="16" r="5" stroke="#71717a" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
                 <circle cx="16" cy="16" r="1.5" fill="#a1a1aa" />
               </svg>
-              <span className="text-sm font-bold text-zinc-500 tracking-tight">llmify</span>
+              <span className="text-sm font-bold text-zinc-500 tracking-tight">crlcontxt</span>
             </Link>
             <span className="text-xs text-zinc-700">
               Built with Next.js, Supabase & Vercel Edge
@@ -464,7 +464,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="max-w-6xl mx-auto mt-6 text-center">
-          <p className="text-xs text-zinc-800">&copy; {new Date().getFullYear()} LLMify. Built for the agentic web.</p>
+          <p className="text-xs text-zinc-800">&copy; {new Date().getFullYear()} CrlContxt. Built for the agentic web.</p>
         </div>
       </footer>
 

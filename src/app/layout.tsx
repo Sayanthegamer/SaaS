@@ -5,7 +5,7 @@ import './globals.css';
 const outfit = Outfit({ subsets: ['latin'], weight: ['300', '400', '600', '900'] });
 
 export const metadata: Metadata = {
-  title: 'LLMify | Optimize Your Website for AI Agents & LLMs',
+  title: 'CrlContxt | Optimize Your Website for AI Agents & LLMs',
   description: 'Deploy deterministic llms.txt files and WebMCP schemas to guarantee your website is correctly understood, crawled, and ingested by AI search engines like ChatGPT, Claude, and Perplexity.',
   keywords: [
     'llms.txt',
@@ -18,19 +18,19 @@ export const metadata: Metadata = {
     'AI crawlers',
     'llms.txt generator'
   ],
-  authors: [{ name: 'LLMify Team' }],
+  authors: [{ name: 'CrlContxt Team' }],
   metadataBase: new URL('https://saas-eta-rose.vercel.app'),
   openGraph: {
-    title: 'LLMify | Optimize Your Website for AI Agents & LLMs',
+    title: 'CrlContxt | Optimize Your Website for AI Agents & LLMs',
     description: 'Deploy deterministic llms.txt files and WebMCP schemas to guarantee your website is correctly understood, crawled, and ingested by AI search engines.',
     url: 'https://saas-eta-rose.vercel.app',
-    siteName: 'LLMify',
+    siteName: 'CrlContxt',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LLMify | Optimize Your Website for AI Agents',
+    title: 'CrlContxt | Optimize Your Website for AI Agents',
     description: 'Deploy deterministic llms.txt files and WebMCP schemas to guarantee your website is correctly understood by AI agents.',
   },
 };
@@ -43,7 +43,7 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    'name': 'LLMify',
+    'name': 'CrlContxt',
     'description': 'Deploy deterministic llms.txt files and WebMCP schemas to guarantee your enterprise is correctly ingested by AI Agents.',
     'applicationCategory': 'DeveloperApplication',
     'operatingSystem': 'All',

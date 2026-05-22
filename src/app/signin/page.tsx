@@ -20,7 +20,7 @@ export default async function SignInPage({
               <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
               <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
             </svg>
-            <span className="text-sm font-bold text-white tracking-tight">llmify</span>
+            <span className="text-sm font-bold text-white tracking-tight">crlcontxt</span>
           </Link>
         </div>
 

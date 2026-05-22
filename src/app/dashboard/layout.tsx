@@ -15,7 +15,7 @@ export default function DashboardLayout({
             <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
             <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
           </svg>
-          <span className="text-sm font-bold text-white tracking-tight">llmify</span>
+          <span className="text-sm font-bold text-white tracking-tight">crlcontxt</span>
         </Link>
 
         <nav className="flex flex-col gap-0.5 px-2 mt-2">

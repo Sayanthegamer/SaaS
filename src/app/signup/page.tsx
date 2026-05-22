@@ -20,14 +20,14 @@ export default async function SignUpPage({
               <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
               <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
             </svg>
-            <span className="text-sm font-bold text-white tracking-tight">llmify</span>
+            <span className="text-sm font-bold text-white tracking-tight">crlcontxt</span>
           </Link>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700">
           <div className="mb-6">
             <h1 className="text-xl font-semibold text-white">Create an account</h1>
-            <p className="text-sm text-zinc-500 mt-1">Get started with LLMify</p>
+            <p className="text-sm text-zinc-500 mt-1">Get started with CrlContxt</p>
           </div>
 
           {error && (

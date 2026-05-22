@@ -6,7 +6,7 @@ export default function RootLoading() {
         <div className="w-12 h-12 rounded-full border border-zinc-900 border-t-zinc-400 animate-spin"></div>
         <div className="absolute w-6 h-6 rounded-full border border-zinc-900 border-b-zinc-500 animate-spin [animation-direction:reverse]"></div>
       </div>
-      <p className="text-xs font-mono text-zinc-550 uppercase tracking-widest animate-pulse">Loading LLMify</p>
+      <p className="text-xs font-mono text-zinc-550 uppercase tracking-widest animate-pulse">Loading CrlContxt</p>
     </div>
   );
 }
