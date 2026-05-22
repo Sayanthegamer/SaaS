@@ -1,6 +1,6 @@
 import { logout } from '@/app/actions/auth';
 import Link from 'next/link';
-import { Globe, Wrench, LogOut } from 'lucide-react';
+import { Globe, Wrench, LogOut, BarChart } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -22,6 +22,10 @@ export default function DashboardLayout({
           <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-cyan-400 transition-colors">
             <Globe size={18} />
             <span className="font-semibold">Domains</span>
+          </Link>
+          <Link href="/dashboard/analytics" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-blue-400 transition-colors">
+            <BarChart size={18} />
+            <span className="font-semibold">Analytics</span>
           </Link>
           <Link href="/dashboard/webmcp" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-purple-400 transition-colors">
             <Wrench size={18} />

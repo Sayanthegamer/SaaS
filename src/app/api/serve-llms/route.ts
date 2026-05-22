@@ -54,7 +54,23 @@ export async function GET(request: Request) {
       return new NextResponse('File not generated yet', { status: 404 });
     }
 
-    // 3. Return the file with proper headers for AI agents and strict caching
+    // 3. Log Analytics (Fire-and-forget to avoid blocking the response)
+    const userAgent = request.headers.get('user-agent') || 'Unknown';
+    let botName = 'Other';
+    if (userAgent.includes('ChatGPT')) botName = 'ChatGPT';
+    else if (userAgent.includes('Claude')) botName = 'ClaudeBot';
+    else if (userAgent.includes('Perplexity')) botName = 'Perplexity';
+    else if (userAgent.includes('Googlebot')) botName = 'Googlebot';
+
+    supabase.from('analytics').insert({
+      domain_id: domainData.id,
+      bot_name: botName,
+      user_agent: userAgent
+    }).then((res: any) => {
+      if (res.error) console.error('Failed to log analytics:', res.error);
+    });
+
+    // 4. Return the file with proper headers for AI agents and strict caching
     return new NextResponse(fileData.content, {
       status: 200,
       headers: {
