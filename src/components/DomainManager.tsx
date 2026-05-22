@@ -24,7 +24,10 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domainId, domainUrl })
       })
-      if (!res.ok) throw new Error('Generation failed')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Generation failed');
+      }
       window.location.reload()
     } catch (error) {
       alert(error)
