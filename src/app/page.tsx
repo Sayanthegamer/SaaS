@@ -1,6 +1,13 @@
 import { ArrowRight, Bot, Shield, Zap } from 'lucide-react';
 
-export default function LandingPage() {
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export default async function LandingPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const status = resolvedSearchParams?.status;
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black overflow-hidden relative">
       
@@ -32,34 +39,46 @@ export default function LandingPage() {
 
         {/* Self-Referential WebMCP Form */}
         <article className="mt-8 w-full max-w-md bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-2xl shadow-2xl shadow-cyan-900/20 hover:-translate-y-1 hover:shadow-cyan-500/30 transition-all duration-500">
-          <form 
-            action="/api/signup" 
-            method="POST" 
-            className="flex flex-col gap-4"
-            // Stage 5 Hardening: Self-Referential WebMCP Injection
-            // @ts-expect-error custom attributes
-            toolname="register_for_early_access"
-            tooldescription="Registers the user's email to get early access to the Agentic SaaS."
-          >
-            <label htmlFor="email" className="sr-only">Email Address</label>
-            <input 
-              id="email"
-              type="email" 
-              name="email"
-              required
-              placeholder="Enter your work email"
-              className="w-full bg-slate-950 border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+          {status === 'success' ? (
+            <div className="flex flex-col items-center gap-4 text-center py-4 animate-in fade-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center text-green-400">
+                <Shield size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-white">You're on the list!</h3>
+              <p className="text-slate-400 text-sm">
+                Thank you for signing up. We'll reach out to your work email with details for early access.
+              </p>
+            </div>
+          ) : (
+            <form 
+              action="/api/signup" 
+              method="POST" 
+              className="flex flex-col gap-4"
+              // Stage 5 Hardening: Self-Referential WebMCP Injection
               // @ts-expect-error custom attributes
-              toolparamdescription="The user's professional email address."
-            />
-            <button 
-              type="submit" 
-              className="group flex items-center justify-center gap-2 w-full bg-white text-black font-bold text-lg px-6 py-3 rounded-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
+              toolname="register_for_early_access"
+              tooldescription="Registers the user's email to get early access to the Agentic SaaS."
             >
-              Get Early Access
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-          </form>
+              <label htmlFor="email" className="sr-only">Email Address</label>
+              <input 
+                id="email"
+                type="email" 
+                name="email"
+                required
+                placeholder="Enter your work email"
+                className="w-full bg-slate-950 border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+                // @ts-expect-error custom attributes
+                toolparamdescription="The user's professional email address."
+              />
+              <button 
+                type="submit" 
+                className="group flex items-center justify-center gap-2 w-full bg-white text-black font-bold text-lg px-6 py-3 rounded-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
+              >
+                Get Early Access
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </form>
+          )}
         </article>
       </section>
 
