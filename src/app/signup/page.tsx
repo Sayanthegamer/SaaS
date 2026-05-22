@@ -11,17 +11,22 @@ export default async function SignUpPage({
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-sm font-bold text-white">
-            agentic
+      <div className="w-full max-w-sm animate-in">
+        <div className="text-center mb-8 flex justify-center">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-6 h-6 fill-none">
+              <circle cx="16" cy="16" r="10" stroke="#f4f4f5" strokeWidth="2.5" strokeDasharray="16 8" strokeLinecap="round" />
+              <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
+              <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
+            </svg>
+            <span className="text-sm font-bold text-white tracking-tight">llmify</span>
           </Link>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700">
           <div className="mb-6">
             <h1 className="text-xl font-semibold text-white">Create an account</h1>
-            <p className="text-sm text-zinc-500 mt-1">Get started with Agentic</p>
+            <p className="text-sm text-zinc-500 mt-1">Get started with LLMify</p>
           </div>
 
           {error && (
@@ -61,7 +66,7 @@ export default async function SignUpPage({
 
             <button
               formAction={signup}
-              className="w-full mt-2 bg-white text-zinc-950 font-medium text-sm py-2.5 rounded-lg hover:bg-zinc-200 transition-colors"
+              className="w-full mt-2 bg-white text-zinc-950 font-medium text-sm py-2.5 rounded-lg hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
               Create account
             </button>

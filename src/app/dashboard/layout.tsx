@@ -9,8 +9,13 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen">
       <aside className="w-56 bg-zinc-950 border-r border-zinc-900 flex flex-col">
-        <Link href="/" className="p-5">
-          <span className="text-sm font-bold text-white">agentic</span>
+        <Link href="/" className="flex items-center gap-2 p-5 hover:opacity-80 transition-opacity">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-5 h-5 fill-none">
+            <circle cx="16" cy="16" r="10" stroke="#f4f4f5" strokeWidth="2.5" strokeDasharray="16 8" strokeLinecap="round" />
+            <circle cx="16" cy="16" r="5" stroke="#a1a1aa" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
+            <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
+          </svg>
+          <span className="text-sm font-bold text-white tracking-tight">llmify</span>
         </Link>
 
         <nav className="flex flex-col gap-0.5 px-2 mt-2">
