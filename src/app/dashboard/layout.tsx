@@ -1,6 +1,5 @@
 import { logout } from '@/app/actions/auth';
 import Link from 'next/link';
-import { Globe, Wrench, LogOut, BarChart } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -8,46 +7,48 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-200 font-sans">
-      
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col border-r border-slate-800 bg-slate-900/50">
-        <div className="p-6">
-          <Link href="/" className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
-            Agentic.
-          </Link>
-        </div>
+    <div className="flex h-screen">
+      <aside className="w-56 bg-zinc-950 border-r border-zinc-900 flex flex-col">
+        <Link href="/" className="p-5">
+          <span className="text-sm font-bold text-white">agentic</span>
+        </Link>
 
-        <nav className="flex-1 px-4 flex flex-col gap-2 mt-4">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-cyan-400 transition-colors">
-            <Globe size={18} />
-            <span className="font-semibold">Domains</span>
+        <nav className="flex flex-col gap-0.5 px-2 mt-2">
+          <Link
+            href="/dashboard"
+            className="text-sm text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors px-5 py-2 rounded-md"
+          >
+            Domains
           </Link>
-          <Link href="/dashboard/analytics" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-blue-400 transition-colors">
-            <BarChart size={18} />
-            <span className="font-semibold">Analytics</span>
+          <Link
+            href="/dashboard/analytics"
+            className="text-sm text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors px-5 py-2 rounded-md"
+          >
+            Analytics
           </Link>
-          <Link href="/dashboard/webmcp" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-purple-400 transition-colors">
-            <Wrench size={18} />
-            <span className="font-semibold">WebMCP Tools</span>
+          <Link
+            href="/dashboard/webmcp"
+            className="text-sm text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors px-5 py-2 rounded-md"
+          >
+            WebMCP
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="mt-auto p-2">
           <form action={logout}>
-            <button className="flex items-center gap-3 w-full px-4 py-3 text-left rounded-lg text-red-400 hover:bg-red-950/30 transition-colors font-semibold">
-              <LogOut size={18} />
-              Sign Out
+            <button
+              type="submit"
+              className="text-sm text-zinc-600 hover:text-red-400 px-5 py-2 transition-colors w-full text-left"
+            >
+              Sign out
             </button>
           </form>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/20 via-slate-950 to-black">
+      <main className="flex-1 bg-zinc-950 overflow-y-auto">
         {children}
       </main>
-
     </div>
   );
 }

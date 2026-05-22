@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addDomain, deleteDomain } from '@/app/actions/domains'
-import { Globe, Plus, Play, Trash2, CheckCircle2, XCircle, Loader2, Code2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 type Domain = {
   id: string;
@@ -45,104 +45,93 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Domains</h1>
-          <p className="text-slate-400 mt-1">Manage your domains and generate llms.txt files.</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-semibold text-white">Domains</h1>
+        <p className="text-sm text-zinc-500 mt-1">Manage your domains and generate llms.txt files.</p>
       </div>
 
-      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <form action={handleAddDomain} className="flex gap-4 mb-8">
-          <input 
-            name="domainUrl"
-            type="url"
-            required
-            placeholder="https://example.com"
-            className="flex-1 bg-slate-950 border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
-          />
-          <button 
-            type="submit"
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:opacity-90 transition-all"
-          >
-            <Plus size={20} />
-            Add Domain
-          </button>
-        </form>
+      <form action={handleAddDomain} className="flex gap-3">
+        <input
+          name="domainUrl"
+          type="url"
+          required
+          placeholder="https://example.com"
+          className="flex-1 bg-zinc-900 border border-zinc-800 text-sm text-zinc-100 px-3 py-2.5 rounded-lg focus:border-zinc-600 outline-none placeholder:text-zinc-600"
+        />
+        <button
+          type="submit"
+          className="bg-white text-zinc-950 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-zinc-200 transition-colors"
+        >
+          Add Domain
+        </button>
+      </form>
 
-        <div className="flex flex-col gap-4">
-          {initialDomains.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 border border-slate-800 border-dashed rounded-xl">
-              <Globe size={48} className="mx-auto mb-4 opacity-50" />
-              <p>No domains added yet. Add one above to get started.</p>
-            </div>
-          ) : (
-            initialDomains.map(domain => (
-              <div key={domain.id} className="flex flex-col gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-slate-900 rounded-lg">
-                      <Globe className="text-cyan-400" size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-200">{domain.domain_url}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs px-2 py-1 rounded-full border ${
-                          domain.status === 'active' ? 'bg-green-900/20 border-green-500/30 text-green-400' :
-                          domain.status === 'failed' ? 'bg-red-900/20 border-red-500/30 text-red-400' :
-                          'bg-slate-800 border-slate-600 text-slate-400'
-                        }`}>
-                          {domain.status.toUpperCase()}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          Added {new Date(domain.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => handleGenerate(domain.id, domain.domain_url)}
-                      disabled={generatingId === domain.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm font-semibold text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 transition-all disabled:opacity-50"
-                    >
-                      {generatingId === domain.id ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                      {domain.status === 'active' ? 'Regenerate' : 'Generate'}
-                    </button>
-                    
-                    {domain.status === 'active' && (
-                      <button 
-                        onClick={() => setShowEdgeWorker(showEdgeWorker === domain.id ? null : domain.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm font-semibold text-slate-300 hover:text-purple-400 hover:border-purple-500/50 transition-all"
-                      >
-                        <Code2 size={16} />
-                        Edge Script
-                      </button>
-                    )}
-
-                    <button 
-                      onClick={() => deleteDomain(domain.id)}
-                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+      <div className="flex flex-col divide-y divide-zinc-900">
+        {initialDomains.length === 0 ? (
+          <div className="text-center py-16 text-sm text-zinc-600">
+            No domains added yet. Add one above to get started.
+          </div>
+        ) : (
+          initialDomains.map(domain => (
+            <div key={domain.id}>
+              <div className="py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">{domain.domain_url}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs font-mono uppercase tracking-wider ${
+                      domain.status === 'active' ? 'text-emerald-500' :
+                      domain.status === 'failed' ? 'text-red-400' :
+                      'text-zinc-500'
+                    }`}>
+                      {domain.status}
+                    </span>
+                    <span className="text-xs text-zinc-700">
+                      {new Date(domain.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
 
-                {showEdgeWorker === domain.id && (
-                  <div className="mt-4 p-4 bg-black/50 border border-purple-500/30 rounded-lg">
-                    <p className="text-sm text-slate-400 mb-2">
-                      Deploy this script to Cloudflare Workers to proxy your <code className="text-purple-300">llms.txt</code> file automatically.
-                    </p>
-                    <textarea 
-                      readOnly
-                      className="w-full h-48 bg-slate-950 p-4 rounded border border-slate-800 text-sm font-mono text-cyan-400 outline-none"
-                      value={`export default {
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleGenerate(domain.id, domain.domain_url)}
+                    disabled={generatingId === domain.id}
+                    className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 border border-zinc-800 px-3 py-1.5 rounded-md hover:text-white hover:bg-zinc-900 transition-colors disabled:opacity-50"
+                  >
+                    {generatingId === domain.id && <Loader2 size={12} className="animate-spin" />}
+                    {domain.status === 'active' ? 'Regenerate' : 'Generate'}
+                  </button>
+
+                  {domain.status === 'active' && (
+                    <button
+                      onClick={() => setShowEdgeWorker(showEdgeWorker === domain.id ? null : domain.id)}
+                      className="text-xs font-medium text-zinc-500 border border-zinc-800 px-3 py-1.5 rounded-md hover:text-white hover:bg-zinc-900 transition-colors"
+                    >
+                      Edge Script
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => deleteDomain(domain.id)}
+                    className="text-xs text-zinc-700 hover:text-red-400 px-2 py-1.5 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              {showEdgeWorker === domain.id && (
+                <div className="mt-3 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+                  <p className="text-xs text-zinc-500 mb-2">
+                    Deploy this script to Cloudflare Workers to proxy your <code className="text-zinc-300">llms.txt</code> file automatically.
+                  </p>
+                  <textarea
+                    readOnly
+                    className="w-full h-44 bg-zinc-950 p-3 rounded border border-zinc-800 text-xs font-mono text-zinc-400 outline-none"
+                    value={`export default {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === '/llms.txt') {
-      const response = await fetch('https://[YOUR_SAAS_DOMAIN]/api/serve-llms?domain=' + encodeURIComponent('${domain.domain_url}'));
+      const response = await fetch('https://saas-eta-rose.vercel.app/api/serve-llms?domain=' + encodeURIComponent('${domain.domain_url}'));
       if (response.ok) {
         return new Response(await response.text(), { 
           headers: { 'Content-Type': 'text/plain' } 
@@ -152,13 +141,12 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
     return fetch(request);
   }
 }`}
-                    />
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+                  />
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

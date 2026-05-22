@@ -20,8 +20,8 @@ export default async function AnalyticsPage() {
   if (!domains || domains.length === 0) {
     return (
       <div className="py-8 px-6 w-full max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2">Analytics Dashboard</h1>
-        <p className="text-slate-400">You need to add a domain first to see analytics.</p>
+        <h1 className="text-xl font-semibold text-white">Analytics</h1>
+        <p className="text-sm text-zinc-500 mt-1">You need to add a domain first to see analytics.</p>
       </div>
     )
   }
@@ -73,30 +73,30 @@ export default async function AnalyticsPage() {
   return (
     <div className="py-8 px-6 w-full max-w-5xl mx-auto flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-        <p className="text-slate-400 mt-1">Track how often AI agents read your domain's llms.txt.</p>
+        <h1 className="text-xl font-semibold text-white">Analytics</h1>
+        <p className="text-sm text-zinc-500 mt-1">Track how often AI agents read your domain&apos;s llms.txt.</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center">
-          <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Total AI Reads</span>
-          <span className="text-5xl font-black text-cyan-400">{totalReads}</span>
+      <div className="grid grid-cols-3 gap-px bg-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-zinc-950 p-6 text-center">
+          <span className="block text-xs font-mono text-zinc-600 uppercase tracking-wider mb-2">Total AI Reads</span>
+          <span className="block text-3xl font-extrabold text-white">{totalReads}</span>
         </div>
         
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center">
-          <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Top Bot</span>
-          <span className="text-3xl font-bold text-purple-400">
+        <div className="bg-zinc-950 p-6 text-center">
+          <span className="block text-xs font-mono text-zinc-600 uppercase tracking-wider mb-2">Top Bot</span>
+          <span className="block text-3xl font-extrabold text-white">
             {botChartData.length > 0 ? botChartData.sort((a,b) => b.reads - a.reads)[0].name : 'N/A'}
           </span>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center">
-          <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Active Domains</span>
-          <span className="text-4xl font-black text-blue-400">{domains.length}</span>
+        <div className="bg-zinc-950 p-6 text-center">
+          <span className="block text-xs font-mono text-zinc-600 uppercase tracking-wider mb-2">Active Domains</span>
+          <span className="block text-3xl font-extrabold text-white">{domains.length}</span>
         </div>
       </div>
 
-      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div className="mt-8">
         <AnalyticsCharts botData={botChartData} timeData={timeChartData} />
       </div>
     </div>

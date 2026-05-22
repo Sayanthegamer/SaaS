@@ -1,6 +1,5 @@
 import { login } from '@/app/actions/auth';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 export default async function SignInPage({
   searchParams,
@@ -11,64 +10,70 @@ export default async function SignInPage({
   const error = resolvedParams?.error;
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black p-4">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50 shadow-[0_0_20px_rgba(6,182,212,0.8)]" />
-      
-      <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-2xl shadow-2xl shadow-cyan-900/20">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 p-4">
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2">
-            Agentic.
+          <Link href="/" className="text-sm font-bold text-white">
+            agentic
           </Link>
-          <h1 className="text-3xl font-bold text-white">Welcome back</h1>
-          <p className="text-slate-400 mt-2">Sign in to your account to continue</p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-900/20 border border-red-900/50 text-red-400 text-sm rounded-lg text-center">
-            {error}
-          </div>
-        )}
-
-        <form className="flex flex-col gap-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1" htmlFor="email">Email</label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              required 
-              className="w-full bg-slate-950 border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
-              placeholder="you@example.com"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1" htmlFor="password">Password</label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              className="w-full bg-slate-950 border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
-              placeholder="••••••••"
-            />
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+          <div className="mb-6">
+            <h1 className="text-xl font-semibold text-white">Welcome back</h1>
+            <p className="text-sm text-zinc-500 mt-1">Sign in to your account to continue</p>
           </div>
 
-          <button 
-            formAction={login}
-            className="group flex items-center justify-center gap-2 w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg px-6 py-3 rounded-lg hover:opacity-90 transition-all duration-300"
-          >
-            Sign In
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-        </form>
+          {error && (
+            <div className="mb-6 text-red-400 bg-red-950/50 border border-red-900/50 rounded-lg p-3 text-sm">
+              {error}
+            </div>
+          )}
 
-        <p className="mt-8 text-center text-sm text-slate-400">
-          Don't have an account?{' '}
-          <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-            Sign up
-          </Link>
-        </p>
+          <form className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm px-3 py-2.5 rounded-lg focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 outline-none placeholder:text-zinc-600 transition-colors"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm px-3 py-2.5 rounded-lg focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 outline-none placeholder:text-zinc-600 transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              formAction={login}
+              className="w-full mt-2 bg-white text-zinc-950 font-medium text-sm py-2.5 rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              Sign in
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-zinc-600">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-zinc-400 hover:text-white transition-colors">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );
