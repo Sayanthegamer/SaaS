@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { addDomain, deleteDomain } from '@/app/actions/domains'
+import { addDomain, deleteDomain, getLlmsFile, updateLlmsFile } from '@/app/actions/domains'
 import { Loader2 } from 'lucide-react'
 import SubmitButton from '@/components/SubmitButton'
+import { countTokens } from '@/lib/tokenizer'
 
 type Domain = {
   id: string;
@@ -16,6 +17,11 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
   const [generatingId, setGeneratingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showEdgeWorker, setShowEdgeWorker] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editorContent, setEditorContent] = useState<string>('')
+  const [isFetchingFile, setIsFetchingFile] = useState<boolean>(false)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [tokenCount, setTokenCount] = useState<number>(0)
 
   const handleGenerate = async (domainId: string, domainUrl: string) => {
     setGeneratingId(domainId)
@@ -58,6 +64,55 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
       alert(result.error);
     }
   };
+
+  const handleStartEdit = async (domainId: string) => {
+    if (editingId === domainId) {
+      setEditingId(null)
+      return
+    }
+    
+    setShowEdgeWorker(null)
+    setEditingId(domainId)
+    setIsFetchingFile(true)
+    try {
+      const res = await getLlmsFile(domainId)
+      if (res.error) {
+        alert(res.error)
+        setEditingId(null)
+      } else {
+        const content = res.content || ''
+        setEditorContent(content)
+        setTokenCount(countTokens(content))
+      }
+    } catch (error) {
+      alert(error)
+      setEditingId(null)
+    } finally {
+      setIsFetchingFile(false)
+    }
+  }
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setEditorContent(val)
+    setTokenCount(countTokens(val))
+  }
+
+  const handleSave = async (domainId: string) => {
+    setIsSaving(true)
+    try {
+      const res = await updateLlmsFile(domainId, editorContent)
+      if (res?.error) {
+        alert(res.error)
+      } else {
+        setEditingId(null)
+      }
+    } catch (error) {
+      alert(error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto p-6">
@@ -117,24 +172,101 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
                   </button>
 
                   {domain.status === 'active' && (
-                    <button
-                      onClick={() => setShowEdgeWorker(showEdgeWorker === domain.id ? null : domain.id)}
-                      className="text-xs font-medium text-zinc-500 border border-zinc-800 px-3 py-1.5 rounded-md hover:text-white hover:bg-zinc-900 transition-colors"
-                    >
-                      Edge Script
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleStartEdit(domain.id)}
+                        className={`text-xs font-medium border px-3 py-1.5 rounded-md transition-colors ${
+                          editingId === domain.id
+                            ? 'text-white bg-zinc-900 border-zinc-600'
+                            : 'text-zinc-400 border-zinc-800 hover:text-white hover:bg-zinc-900'
+                        }`}
+                      >
+                        Edit llms.txt
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(null)
+                          setShowEdgeWorker(showEdgeWorker === domain.id ? null : domain.id)
+                        }}
+                        className={`text-xs font-medium border px-3 py-1.5 rounded-md transition-colors ${
+                          showEdgeWorker === domain.id
+                            ? 'text-white bg-zinc-900 border-zinc-600'
+                            : 'text-zinc-500 border-zinc-800 hover:text-white hover:bg-zinc-900'
+                        }`}
+                      >
+                        Edge Script
+                      </button>
+                    </>
                   )}
 
                   <button
                     onClick={() => handleDelete(domain.id)}
                     disabled={deletingId === domain.id}
-                    className="text-xs text-zinc-750 hover:text-red-400 px-2 py-1.5 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    className="text-xs text-zinc-700 hover:text-red-400 px-2 py-1.5 transition-colors disabled:opacity-50 flex items-center gap-1"
                   >
                     {deletingId === domain.id && <Loader2 size={12} className="animate-spin" />}
                     Delete
                   </button>
                 </div>
               </div>
+
+              {editingId === domain.id && (
+                <div className="mt-3 p-4 bg-zinc-900 border border-zinc-800 rounded-lg flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-zinc-500">
+                      Customize your <code className="text-zinc-300">llms.txt</code> content below. This manually edited version will be served instead of the auto-generated one.
+                    </p>
+                    {isFetchingFile && (
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+                        <Loader2 size={12} className="animate-spin" />
+                        Fetching content...
+                      </div>
+                    )}
+                  </div>
+                  
+                  {!isFetchingFile && (
+                    <>
+                      <textarea
+                        value={editorContent}
+                        onChange={handleTextareaChange}
+                        className="w-full h-80 bg-zinc-950 p-3 rounded border border-zinc-800 text-xs font-mono text-zinc-300 outline-none focus:border-zinc-700 resize-y"
+                        placeholder="# Domain Title&#10;&#10;Customize your llms.txt content here..."
+                      />
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-500 font-medium">Size estimation:</span>
+                          <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                            tokenCount > 3000
+                              ? 'text-red-400 border-red-900/50 bg-red-950/20'
+                              : 'text-zinc-400 border-zinc-800 bg-zinc-950'
+                          }`}>
+                            {tokenCount.toLocaleString()} tokens {tokenCount > 3000 && '(exceeds 3,000)'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            disabled={isSaving}
+                            className="text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 transition-colors disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSave(domain.id)}
+                            disabled={isSaving}
+                            className="text-xs bg-white text-zinc-950 font-medium px-4 py-1.5 rounded hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {isSaving && <Loader2 size={12} className="animate-spin" />}
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {showEdgeWorker === domain.id && (
                 <div className="mt-3 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">

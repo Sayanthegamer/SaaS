@@ -6,6 +6,8 @@ export interface PageMetadata {
   url: string;
   title: string;
   description: string;
+  headings?: string[];
+  features?: string[];
 }
 
 export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
@@ -58,6 +60,21 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
       let title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
       let description = root.querySelector('meta[name="description"]')?.getAttribute('content') || '';
 
+      // Extract headings (h2, h3)
+      const headings = root.querySelectorAll('h2, h3')
+        .map(h => h.text.trim())
+        .filter(t => t.length > 5 && t.length < 80)
+        .slice(0, 4);
+
+      // Extract lists (li) as highlights/features
+      const features: string[] = [];
+      root.querySelectorAll('li').forEach(li => {
+        const text = li.text.trim();
+        if (text.length > 10 && text.length < 100 && features.length < 3) {
+          features.push(text);
+        }
+      });
+
       // SPA fallback skipped to prevent Vercel bundle bloat (local Puppeteer is not supported on Vercel Serverless).
       if ((root.querySelector('body')?.text || '').trim().length < 500) {
         console.warn('SPA detected for URL:', url, '- metadata might be incomplete.');
@@ -66,7 +83,13 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
       title = title || 'Untitled Page';
       description = description || 'No description provided.';
       
-      return { url, title: title.trim(), description: description.trim() };
+      return { 
+        url, 
+        title: title.trim(), 
+        description: description.trim(),
+        headings: headings.length > 0 ? headings : undefined,
+        features: features.length > 0 ? features : undefined
+      };
     } catch (e) {
       return null;
     }
@@ -79,10 +102,40 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
 export function compileLlmsTxt(domainName: string, pages: PageMetadata[]): { markdown: string, tokenCount: number } {
   let markdown = `# ${domainName}\n\n`;
   markdown += `> This is the official llms.txt file for ${domainName}, outlining key pages and context for AI agents.\n\n`;
+  
+  const homepage = pages.find(p => p.url.endsWith('/') || p.url.split('/').length === 3);
+  if (homepage && homepage.description && homepage.description !== 'No description provided.') {
+    markdown += `## Overview\n${homepage.description}\n\n`;
+  }
+
   markdown += `## Structure and Pages\n\n`;
   
   for (const page of pages) {
-    const entry = `- [${page.title}](${page.url}): ${page.description}\n`;
+    let path = '/';
+    try {
+      const parsedUrl = new URL(page.url);
+      path = parsedUrl.pathname;
+    } catch (_) {}
+
+    let entry = `- [${page.title}](${page.url}) \`${path}\`\n`;
+    if (page.description && page.description !== 'No description provided.') {
+      entry += `  - **Overview**: ${page.description}\n`;
+    }
+    
+    if (page.headings && page.headings.length > 0) {
+      entry += `  - **Key Sections**:\n`;
+      for (const h of page.headings) {
+        entry += `    - ${h}\n`;
+      }
+    }
+    
+    if (page.features && page.features.length > 0) {
+      entry += `  - **Highlights**:\n`;
+      for (const f of page.features) {
+        entry += `    - ${f}\n`;
+      }
+    }
+    entry += `\n`;
     
     if (countTokens(markdown + entry) > 2800) {
       markdown += `\n> [!NOTE]\n> Some pages were truncated to remain within the token limit.`;
