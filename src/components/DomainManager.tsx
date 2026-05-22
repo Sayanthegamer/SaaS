@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { addDomain, deleteDomain } from '@/app/actions/domains'
 import { Loader2 } from 'lucide-react'
+import SubmitButton from '@/components/SubmitButton'
 
 type Domain = {
   id: string;
@@ -12,8 +13,8 @@ type Domain = {
 }
 
 export default function DomainManager({ initialDomains }: { initialDomains: Domain[] }) {
-  const [isAdding, setIsAdding] = useState(false)
   const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showEdgeWorker, setShowEdgeWorker] = useState<string | null>(null)
 
   const handleGenerate = async (domainId: string, domainUrl: string) => {
@@ -33,6 +34,21 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
       alert(error)
     } finally {
       setGeneratingId(null)
+    }
+  }
+
+  const handleDelete = async (domainId: string) => {
+    if (!confirm('Are you sure you want to delete this domain?')) return;
+    setDeletingId(domainId);
+    try {
+      const res = await deleteDomain(domainId);
+      if (res?.error) {
+        alert(res.error);
+      }
+    } catch (error) {
+      alert(error);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -58,12 +74,11 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
           placeholder="https://example.com"
           className="flex-1 bg-zinc-900 border border-zinc-800 text-sm text-zinc-100 px-3 py-2.5 rounded-lg focus:border-zinc-600 outline-none placeholder:text-zinc-600"
         />
-        <button
-          type="submit"
-          className="bg-white text-zinc-950 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-zinc-200 transition-colors"
+        <SubmitButton
+          className="bg-white text-zinc-950 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-zinc-200 transition-colors shrink-0"
         >
           Add Domain
-        </button>
+        </SubmitButton>
       </form>
 
       <div className="flex flex-col divide-y divide-zinc-900">
@@ -111,9 +126,11 @@ export default function DomainManager({ initialDomains }: { initialDomains: Doma
                   )}
 
                   <button
-                    onClick={() => deleteDomain(domain.id)}
-                    className="text-xs text-zinc-700 hover:text-red-400 px-2 py-1.5 transition-colors"
+                    onClick={() => handleDelete(domain.id)}
+                    disabled={deletingId === domain.id}
+                    className="text-xs text-zinc-750 hover:text-red-400 px-2 py-1.5 transition-colors disabled:opacity-50 flex items-center gap-1"
                   >
+                    {deletingId === domain.id && <Loader2 size={12} className="animate-spin" />}
                     Delete
                   </button>
                 </div>
