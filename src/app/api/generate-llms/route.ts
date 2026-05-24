@@ -12,12 +12,23 @@ export async function POST(request: Request) {
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { domainId, domainUrl } = await request.json();
+  let domainId: string, domainUrl: string;
+  try {
+    const body = await request.json();
+    domainId = body.domainId;
+    domainUrl = body.domainUrl;
+  } catch (e) {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
   if (!domainId || !domainUrl) return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
 
   try {
     // 1. Mark as active
-    await supabase.from('domains').update({ status: 'active' }).eq('id', domainId);
+    const { data, error: updateError } = await supabase.from('domains').update({ status: 'active' }).eq('id', domainId).select();
+    if (updateError || !data || data.length === 0) {
+      console.error('Failed to mark domain as active:', updateError);
+      return NextResponse.json({ error: 'Failed to update domain status' }, { status: 500 });
+    }
 
     // 2. Dispatch the background job
     if (process.env.QSTASH_TOKEN) {

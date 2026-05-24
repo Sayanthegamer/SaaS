@@ -15,7 +15,8 @@ export interface PageMetadata {
   productInfo?: { name?: string; price?: string; currency?: string; description?: string };
 }
 
-export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
+export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, currentDepth: number = 0): Promise<string[]> {
+  if (currentDepth >= maxDepth) return [];
   const sitemapUrl = new URL('/sitemap.xml', domainUrl).toString();
   
   try {
@@ -39,8 +40,14 @@ export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
       const sitemapNodes = Array.isArray(parsed.sitemapindex.sitemap) ? parsed.sitemapindex.sitemap : [parsed.sitemapindex.sitemap];
 
       // Fetch ALL nested sitemaps concurrently
-      const nestedUrlsPromises = sitemapNodes.map((node: {loc: string}) => fetchSitemapUrls(node.loc));
-      const nestedUrlsArrays = await Promise.all(nestedUrlsPromises);
+      const nestedUrlsArrays: string[][] = [];
+      const CONCURRENCY_LIMIT = 3;
+      for (let i = 0; i < sitemapNodes.length; i += CONCURRENCY_LIMIT) {
+        const chunk = sitemapNodes.slice(i, i + CONCURRENCY_LIMIT);
+        const chunkPromises = chunk.map((node: {loc: string}) => fetchSitemapUrls(node.loc, maxDepth, currentDepth + 1));
+        const chunkResults = await Promise.all(chunkPromises);
+        nestedUrlsArrays.push(...chunkResults);
+      }
 
       // Flatten the array of arrays
       urls = nestedUrlsArrays.flat();
@@ -81,13 +88,32 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
         const parsedUrl = new URL(url);
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
         // Ensure we don't fetch local resources (Basic SSRF prevention)
-        if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') return null;
+
+        const isPrivateIP = (ip: string) => {
+           if (!ip) return false;
+           const parts = ip.split('.');
+           if (parts.length === 4) {
+             if (parts[0] === '10' || parts[0] === '127') return true;
+             if (parts[0] === '172' && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) return true;
+             if (parts[0] === '192' && parts[1] === '168') return true;
+             if (parts[0] === '169' && parts[1] === '254') return true;
+           }
+           if (ip.includes(':')) { // IPv6 basic check
+             if (ip === '::1' || ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd') || ip.toLowerCase().startsWith('fe80')) return true;
+           }
+           return false;
+        };
+        if (parsedUrl.hostname === 'localhost' || isPrivateIP(parsedUrl.hostname)) return null;
         const safeUrl = parsedUrl.toString();
-        const res = await fetch(safeUrl, {
-          headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        let res;
+        try {
+          res = await fetch(safeUrl, {
+            headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (!res.ok) return null;
 
@@ -177,7 +203,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
           'npmjs.com', 'pypi.org', 'youtube.com', 'chrome.google.com',
           'play.google.com', 'apps.apple.com'
         ];
-        
+
         const domLinks = root.querySelectorAll('a').slice(0, 200); // Limit number of links processed
         for (const a of domLinks) {
           if (linksMap.size >= 8) break;
@@ -206,7 +232,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
         root.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
           try {
             const json = JSON.parse(script.text.trim());
-            
+
             const extractFaq = (obj: Record<string, unknown> | null) => {
               if (!obj) return;
               if (obj['@type'] === 'FAQPage' && obj.mainEntity) {

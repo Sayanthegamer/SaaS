@@ -13,9 +13,11 @@ export default function ScrollReveal({ children, className = '', delayClass = ''
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    let timeoutId1: NodeJS.Timeout;
+    let timeoutId2: NodeJS.Timeout;
     // If IntersectionObserver is not supported, reveal instantly
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-      setTimeout(() => setIsVisible(true), 0);
+      timeoutId1 = timeoutId2 = setTimeout(() => setIsVisible(true), 0);
       return;
     }
 
@@ -38,6 +40,8 @@ export default function ScrollReveal({ children, className = '', delayClass = ''
     }
 
     return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
       observer.disconnect();
     };
   }, []);

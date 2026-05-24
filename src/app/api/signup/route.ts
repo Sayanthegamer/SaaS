@@ -58,6 +58,6 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error('Early access registration failed:', error);
     const errObj = error as { message?: string }; const errorMessage = errObj?.message || JSON.stringify(error) || 'Unknown error';
-    return new NextResponse(`Internal Server Error: Registration failed. Details: ${errorMessage}`, { status: 500 });
+    return new NextResponse('Internal Server Error: Registration failed', { status: 500 });
   }
 }

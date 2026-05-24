@@ -1,3 +1,4 @@
+import { Receiver } from '@upstash/qstash';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fetchSitemapUrls, scrapeMetadata, compileLlmsTxt } from '@/lib/scraper';
@@ -6,9 +7,46 @@ import { fetchSitemapUrls, scrapeMetadata, compileLlmsTxt } from '@/lib/scraper'
 // export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  // TODO: Add QStash signature verification here later to ensure only Upstash can call this route.
 
-  const { domainId, domainUrl } = await request.json();
+
+  async function verifyQStashSignature(request: Request) {
+    if (process.env.QSTASH_TOKEN) {
+      const signature = request.headers.get("Upstash-Signature");
+      if (!signature) {
+        throw new Error("Missing Upstash-Signature header");
+      }
+
+      const receiver = new Receiver({
+        currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || "",
+        nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || "",
+      });
+
+      const body = await request.text();
+      const isValid = await receiver.verify({
+        signature,
+        body,
+      });
+
+      if (!isValid) {
+        throw new Error("Invalid signature");
+      }
+      return JSON.parse(body);
+    } else {
+        return await request.json();
+    }
+  }
+
+
+
+  let domainId: string, domainUrl: string;
+  try {
+     const body = await verifyQStashSignature(request);
+     domainId = body.domainId;
+     domainUrl = body.domainUrl;
+  } catch (error) {
+     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = await createClient(); // Use a service role key here if bypassing RLS is needed in the worker
 
   try {
@@ -30,14 +68,21 @@ export async function POST(request: Request) {
     if (dbError) throw dbError;
 
     // Mark as complete
-    await supabase.from('domains').update({ status: 'completed' }).eq('id', domainId);
+    const { error: updateCompleteError } = await supabase.from('domains').update({ status: 'completed' }).eq('id', domainId);
+    if (updateCompleteError) {
+        console.error('Failed to update domain status to completed:', updateCompleteError);
+        throw updateCompleteError;
+    }
     console.log('[Worker] Successfully completed scrape for domain:', domainUrl);
 
     return NextResponse.json({ success: true });
 
   } catch (error: unknown) {
     console.error('[Worker] Scrape failed for domain:', domainUrl, error);
-    await supabase.from('domains').update({ status: 'failed' }).eq('id', domainId);
+    const { error: updateFailedError } = await supabase.from('domains').update({ status: 'failed' }).eq('id', domainId);
+    if (updateFailedError) {
+        console.error('Failed to update domain status to failed:', updateFailedError);
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
