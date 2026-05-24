@@ -44,12 +44,11 @@ export async function POST(request: Request) {
   }
 
   try {
-
     const { error } = await supabase.from('leads').insert({ email });
 
     if (error) {
       // If email already registered (unique constraint violation), treat as success to avoid leaking/error page
-
+      if ((error as { code?: string }).code === '23505') {
         return NextResponse.redirect(new URL('/?status=success', request.url), 303);
       }
       throw error;
@@ -58,7 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL('/?status=success', request.url), 303);
   } catch (error: unknown) {
     console.error('Early access registration failed:', error);
-
     return new NextResponse('Internal Server Error: Registration failed', { status: 500 });
   }
 }
