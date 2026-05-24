@@ -78,7 +78,9 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        const safeUrl = new URL(url).toString();
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
+        const safeUrl = parsedUrl.toString();
         const res = await fetch(safeUrl, {
           headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
           signal: controller.signal
@@ -215,7 +217,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
                     if (question && answer && faqs.length < 5) {
                       faqs.push({
                         question: question.trim(),
-                        answer: answer.replace(/<[a-zA-Z\/][^>]*>/g, '').trim()
+                        answer: answer.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, '').trim()
                       });
                     }
                   }
