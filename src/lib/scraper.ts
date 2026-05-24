@@ -15,13 +15,53 @@ export interface PageMetadata {
   productInfo?: { name?: string; price?: string; currency?: string; description?: string };
 }
 
-export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
-  const sitemapUrl = new URL('/sitemap.xml', domainUrl).toString();
-  
+const isPrivateIP = (ip: string) => {
+  if (!ip) return false;
+  ip = ip.replace(/^\[|\]$/g, '').toLowerCase();
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    if (parts[0] === '10' || parts[0] === '127') return true;
+    if (parts[0] === '172' && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) return true;
+    if (parts[0] === '192' && parts[1] === '168') return true;
+    if (parts[0] === '169' && parts[1] === '254') return true;
+  }
+  if (ip.includes(':')) {
+    if (ip === '::1' || ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd') || ip.toLowerCase().startsWith('fe80')) return true;
+  }
+  return false;
+};
+
+export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, currentDepth: number = 0): Promise<string[]> {
+  if (currentDepth >= maxDepth) return [];
+  let sitemapUrl: string;
   try {
-    const response = await fetch(sitemapUrl, { 
-      headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' } 
+    let parsed: URL;
+    if (domainUrl.endsWith('.xml') || domainUrl.includes('/sitemap')) {
+      parsed = new URL(domainUrl);
+    } else {
+      parsed = new URL('/sitemap.xml', domainUrl);
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return [];
+    if (parsed.hostname === 'localhost' || isPrivateIP(parsed.hostname)) return [];
+    sitemapUrl = parsed.toString();
+  } catch(e) {
+    return [];
+  }
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  let response;
+  try {
+    response = await fetch(sitemapUrl, {
+      headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
+      signal: controller.signal
     });
+  } catch(e) {
+     clearTimeout(timeoutId);
+     throw e;
+  }
+  clearTimeout(timeoutId);
+  try {
     
     if (!response.ok) throw new Error('Sitemap not found');
     
@@ -33,14 +73,35 @@ export async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
     
     if (parsed.urlset && parsed.urlset.url) {
       const urlNodes = Array.isArray(parsed.urlset.url) ? parsed.urlset.url : [parsed.urlset.url];
-      urls = urlNodes.map((u: any) => u.loc);
+      urls = urlNodes.map((u: {loc: string}) => u.loc);
     } 
     else if (parsed.sitemapindex && parsed.sitemapindex.sitemap) {
       const sitemapNodes = Array.isArray(parsed.sitemapindex.sitemap) ? parsed.sitemapindex.sitemap : [parsed.sitemapindex.sitemap];
-      return fetchSitemapUrls(sitemapNodes[0].loc);
+
+      // Fetch ALL nested sitemaps concurrently
+      const nestedUrlsArrays: string[][] = [];
+      const CONCURRENCY_LIMIT = 3;
+      for (let i = 0; i < sitemapNodes.length; i += CONCURRENCY_LIMIT) {
+        const chunk = sitemapNodes.slice(i, i + CONCURRENCY_LIMIT);
+        const chunkPromises = chunk.map((node: {loc: string}) => {
+          try {
+            const parsed = new URL(node.loc);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return Promise.resolve([]);
+            if (parsed.hostname === 'localhost' || isPrivateIP(parsed.hostname)) return Promise.resolve([]);
+            return fetchSitemapUrls(parsed.toString(), maxDepth, currentDepth + 1);
+          } catch(e) {
+            return Promise.resolve([]);
+          }
+        });
+        const chunkResults = await Promise.all(chunkPromises);
+        nestedUrlsArrays.push(...chunkResults);
+      }
+
+      // Flatten the array of arrays
+      urls = nestedUrlsArrays.flat();
     }
 
-    return urls.slice(0, 20);
+    return Array.from(new Set(urls)).slice(0, 50); // Remove duplicates and slice
   } catch (error) {
     console.error('Sitemap parsing failed:', error);
     return [domainUrl];
@@ -56,205 +117,263 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
     return bPriority - aPriority;
   });
 
-  const fetchPromises = sortedUrls.map(async (url) => {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' } });
-      const html = await res.text();
-      const root = parse(html);
-      
-      let title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
-      let description = root.querySelector('meta[name="description"]')?.getAttribute('content') || 
-                        root.querySelector('meta[property="og:description"]')?.getAttribute('content') || 
-                        root.querySelector('meta[name="twitter:description"]')?.getAttribute('content') || '';
+  const results: PageMetadata[] = [];
+  const CONCURRENCY_LIMIT = 5;
 
-      // Extract headings (h1, h2, h3) - up to 8 for detail
-      const headings = root.querySelectorAll('h1, h2, h3')
-        .map(h => h.text.trim().replace(/\s+/g, ' '))
-        .filter(t => t.length > 5 && t.length < 100)
-        .slice(0, 8);
+  // Pre-compile regexes for performance
+  const regexWhitespace = /\s+/g;
+  const regexFeaturesExclude = /home|pricing|docs|login|sign in|sign up|dashboard|register|privacy|terms/i;
+  const regexParagraphsExclude = /cookie|privacy|copyright|rights reserved|agree/i;
 
-      // Extract list items (li) - up to 6 detailed items
-      const features: string[] = [];
-      root.querySelectorAll('li').forEach(li => {
-        const text = li.text.trim().replace(/\s+/g, ' ');
-        if (
-          text.length > 15 && 
-          text.length < 150 && 
-          features.length < 6 && 
-          !features.includes(text) &&
-          !/home|pricing|docs|login|sign in|sign up|dashboard|register|privacy|terms/i.test(text)
-        ) {
-          features.push(text);
-        }
-      });
+  for (let i = 0; i < sortedUrls.length; i += CONCURRENCY_LIMIT) {
+    const chunk = sortedUrls.slice(i, i + CONCURRENCY_LIMIT);
 
-      // Extract paragraphs (paragraphs) - up to 3 descriptive paragraphs
-      const paragraphs: string[] = [];
-      root.querySelectorAll('p').forEach(p => {
-        const text = p.text.trim().replace(/\s+/g, ' ');
-        if (
-          text.length > 60 && 
-          text.length < 350 && 
-          paragraphs.length < 3 && 
-          !/cookie|privacy|copyright|rights reserved|agree/i.test(text)
-        ) {
-          paragraphs.push(text);
-        }
-      });
+    const chunkPromises = chunk.map(async (url) => {
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
 
-      // Extract tables and convert to Markdown
-      const tables: string[] = [];
-      root.querySelectorAll('table').forEach(table => {
-        if (tables.length >= 2) return;
-        const rows = table.querySelectorAll('tr');
-        if (rows.length === 0) return;
-        
-        const mdRows: string[][] = [];
-        rows.slice(0, 8).forEach(row => {
-          const cells = row.querySelectorAll('th, td')
-            .slice(0, 5)
-            .map(c => c.text.trim().replace(/\s+/g, ' '));
-          if (cells.length > 0) {
-            mdRows.push(cells);
-          }
-        });
-        
-        if (mdRows.length > 0) {
-          const maxCols = Math.max(...mdRows.map(r => r.length));
-          const formatRow = (cells: string[]) => {
-            const padded = [...cells, ...Array(maxCols - cells.length).fill('')];
-            return `| ${padded.join(' | ')} |`;
-          };
-          let markdownTable = formatRow(mdRows[0]) + '\n';
-          markdownTable += `| ${Array(maxCols).fill('---').join(' | ')} |\n`;
-          mdRows.slice(1).forEach(row => {
-            markdownTable += formatRow(row) + '\n';
-          });
-          tables.push(markdownTable.trim());
-        }
-      });
+        const isPrivateIP = (ip: string) => {
+           if (!ip) return false;
+           const parts = ip.split('.');
+           if (parts.length === 4) {
+             if (parts[0] === '10' || parts[0] === '127') return true;
+             if (parts[0] === '172' && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) return true;
+             if (parts[0] === '192' && parts[1] === '168') return true;
+             if (parts[0] === '169' && parts[1] === '254') return true;
+           }
+           if (ip.includes(':')) {
+             if (ip === '::1' || ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd') || ip.toLowerCase().startsWith('fe80')) return true;
+           }
+           return false;
+        };
+        if (parsedUrl.hostname === 'localhost' || isPrivateIP(parsedUrl.hostname)) return null;
+        const safeUrl = parsedUrl.toString();
 
-      // Extract high-value outbound resource links
-      const linksMap = new Map<string, string>();
-      const allowedDomains = [
-        'github.com', 'discord.gg', 'discord.com', 'twitter.com', 'x.com',
-        'npmjs.com', 'pypi.org', 'youtube.com', 'chrome.google.com',
-        'play.google.com', 'apps.apple.com'
-      ];
-      
-      root.querySelectorAll('a').forEach(a => {
-        const href = a.getAttribute('href')?.trim();
-        const text = a.text.trim().replace(/\s+/g, ' ');
-        if (href && href.startsWith('http')) {
-          try {
-            const urlObj = new URL(href);
-            const isHighValue = allowedDomains.some(d => urlObj.hostname.endsWith(d)) || 
-                                urlObj.hostname.startsWith('docs.') || 
-                                urlObj.hostname.startsWith('api.') ||
-                                urlObj.hostname.startsWith('blog.');
-            
-            if (isHighValue && !linksMap.has(href) && linksMap.size < 8) {
-              linksMap.set(href, text || urlObj.hostname);
-            }
-          } catch (_) {}
-        }
-      });
-      const links = Array.from(linksMap.entries()).map(([url, text]) => ({ text, url }));
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      // Extract JSON-LD Schema data
-      const faqs: { question: string; answer: string }[] = [];
-      let productInfo: any = undefined;
-      
-      root.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        let res;
         try {
-          const json = JSON.parse(script.text.trim());
-          
-          const extractFaq = (obj: any) => {
-            if (!obj) return;
-            if (obj['@type'] === 'FAQPage' && obj.mainEntity) {
-              const entities = Array.isArray(obj.mainEntity) ? obj.mainEntity : [obj.mainEntity];
-              entities.forEach((entity: any) => {
-                if (entity['@type'] === 'Question') {
-                  const question = entity.name || entity.text || '';
-                  const answerEntity = entity.acceptedAnswer;
-                  const answer = answerEntity?.text || answerEntity?.description || '';
-                  if (question && answer && faqs.length < 5) {
-                    faqs.push({
-                      question: question.trim(),
-                      answer: answer.replace(/<[^>]*>/g, '').trim()
-                    });
+          res = await fetch(safeUrl, {
+            headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        if (!res.ok) return null;
+
+        const html = await res.text();
+        const root = parse(html);
+
+        let title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
+        let description = root.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                          root.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+                          root.querySelector('meta[name="twitter:description"]')?.getAttribute('content') || '';
+
+        // Extract headings (h1, h2, h3) - up to 8 for detail
+        const headings = root.querySelectorAll('h1, h2, h3')
+          .slice(0, 15) // Limit initial selector
+          .map(h => h.text.trim().replace(regexWhitespace, ' '))
+          .filter(t => t.length > 5 && t.length < 100)
+          .slice(0, 8);
+
+        // Extract list items (li) - up to 6 detailed items
+        const features: string[] = [];
+        const lis = root.querySelectorAll('li');
+        for (const li of lis) {
+          if (features.length >= 6) break;
+          const text = li.text.trim().replace(regexWhitespace, ' ');
+          if (
+            text.length > 15 &&
+            text.length < 150 &&
+            !features.includes(text) &&
+            !regexFeaturesExclude.test(text)
+          ) {
+            features.push(text);
+          }
+        }
+
+        // Extract paragraphs (paragraphs) - up to 3 descriptive paragraphs
+        const paragraphs: string[] = [];
+        const ps = root.querySelectorAll('p');
+        for (const p of ps) {
+          if (paragraphs.length >= 3) break;
+          const text = p.text.trim().replace(regexWhitespace, ' ');
+          if (
+            text.length > 60 &&
+            text.length < 350 &&
+            !regexParagraphsExclude.test(text)
+          ) {
+            paragraphs.push(text);
+          }
+        }
+
+        // Extract tables and convert to Markdown
+        const tables: string[] = [];
+        const domTables = root.querySelectorAll('table');
+        for (const table of domTables) {
+          if (tables.length >= 2) break;
+          const rows = table.querySelectorAll('tr');
+          if (rows.length === 0) continue;
+
+          const mdRows: string[][] = [];
+          rows.slice(0, 8).forEach(row => {
+            const cells = row.querySelectorAll('th, td')
+              .slice(0, 5)
+              .map(c => c.text.trim().replace(regexWhitespace, ' '));
+            if (cells.length > 0) {
+              mdRows.push(cells);
+            }
+          });
+
+          if (mdRows.length > 0) {
+            const maxCols = Math.max(...mdRows.map(r => r.length));
+            const formatRow = (cells: string[]) => {
+              const padded = [...cells, ...Array(maxCols - cells.length).fill('')];
+              return `| ${padded.join(' | ')} |`;
+            };
+            let markdownTable = formatRow(mdRows[0]) + '\n';
+            markdownTable += `| ${Array(maxCols).fill('---').join(' | ')} |\n`;
+            mdRows.slice(1).forEach(row => {
+              markdownTable += formatRow(row) + '\n';
+            });
+            tables.push(markdownTable.trim());
+          }
+        }
+
+        // Extract high-value outbound resource links
+        const linksMap = new Map<string, string>();
+        const allowedDomains = [
+          'github.com', 'discord.gg', 'discord.com', 'twitter.com', 'x.com',
+          'npmjs.com', 'pypi.org', 'youtube.com', 'chrome.google.com',
+          'play.google.com', 'apps.apple.com'
+        ];
+
+        const domLinks = root.querySelectorAll('a').slice(0, 200); // Limit number of links processed
+        for (const a of domLinks) {
+          if (linksMap.size >= 8) break;
+          const href = a.getAttribute('href')?.trim();
+          const text = a.text.trim().replace(regexWhitespace, ' ');
+          if (href && href.startsWith('http')) {
+            try {
+              const urlObj = new URL(href);
+              const isHighValue = allowedDomains.some(d => urlObj.hostname.endsWith(d)) ||
+                                  urlObj.hostname.startsWith('docs.') ||
+                                  urlObj.hostname.startsWith('api.') ||
+                                  urlObj.hostname.startsWith('blog.');
+
+              if (isHighValue && !linksMap.has(href)) {
+                linksMap.set(href, text || urlObj.hostname);
+              }
+            } catch {}
+          }
+        }
+        const links = Array.from(linksMap.entries()).map(([url, text]) => ({ text, url }));
+
+        // Extract JSON-LD Schema data
+        const faqs: { question: string; answer: string }[] = [];
+        let productInfo: Record<string, string> | undefined = undefined;
+
+        root.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+          try {
+            const json = JSON.parse(script.text.trim());
+
+            const extractFaq = (obj: Record<string, unknown> | null) => {
+              if (!obj) return;
+              if (obj['@type'] === 'FAQPage' && obj.mainEntity) {
+                const entities = Array.isArray(obj.mainEntity) ? obj.mainEntity : [obj.mainEntity];
+                entities.forEach((entity: Record<string, unknown>) => {
+                  if (entity['@type'] === 'Question') {
+                    const question = typeof entity.name === 'string' ? entity.name : typeof entity.text === 'string' ? entity.text : '';
+                    const answerEntity = entity.acceptedAnswer as Record<string, unknown> | undefined;
+                    const answer = typeof answerEntity?.text === 'string' ? answerEntity.text : typeof answerEntity?.description === 'string' ? answerEntity.description : '';
+                    if (question && answer && faqs.length < 5) {
+                      faqs.push({
+                        question: question.trim(),
+                        answer: parse(answer).text.replace(/\s+/g, ' ').trim()
+                      });
+                    }
+                  }
+                });
+              }
+            };
+
+            const extractProduct = (obj: Record<string, unknown> | null) => {
+              if (!obj) return;
+              if ((obj['@type'] === 'Product' || obj['@type'] === 'SoftwareApplication') && !productInfo) {
+                const name = typeof obj.name === 'string' ? obj.name : '';
+                const desc = typeof obj.description === 'string' ? obj.description : '';
+                let price = '';
+                let currency = '';
+                if (obj.offers) {
+                  const offers = Array.isArray(obj.offers) ? obj.offers[0] : obj.offers;
+                  price = offers.price || '';
+                  currency = typeof offers.priceCurrency === 'string' ? offers.priceCurrency : '';
+                }
+                productInfo = {
+                  name: name.trim(),
+                  price: String(price).trim(),
+                  currency: currency.trim(),
+                  description: desc.trim()
+                };
+              }
+            };
+
+            const traverse = (obj: unknown) => {
+              if (Array.isArray(obj)) {
+                obj.forEach(traverse);
+              } else if (typeof obj === 'object' && obj !== null) {
+                extractFaq(obj as Record<string, unknown>);
+                extractProduct(obj as Record<string, unknown>);
+                for (const k in obj) {
+                  if (typeof (obj as Record<string, unknown>)[k] === 'object') {
+                    traverse((obj as Record<string, unknown>)[k]);
                   }
                 }
-              });
-            }
-          };
-          
-          const extractProduct = (obj: any) => {
-            if (!obj) return;
-            if ((obj['@type'] === 'Product' || obj['@type'] === 'SoftwareApplication') && !productInfo) {
-              const name = obj.name || '';
-              const desc = obj.description || '';
-              let price = '';
-              let currency = '';
-              if (obj.offers) {
-                const offers = Array.isArray(obj.offers) ? obj.offers[0] : obj.offers;
-                price = offers.price || '';
-                currency = offers.priceCurrency || '';
               }
-              productInfo = {
-                name: name.trim(),
-                price: String(price).trim(),
-                currency: currency.trim(),
-                description: desc.trim()
-              };
-            }
-          };
-          
-          const traverse = (obj: any) => {
-            if (Array.isArray(obj)) {
-              obj.forEach(traverse);
-            } else if (typeof obj === 'object' && obj !== null) {
-              extractFaq(obj);
-              extractProduct(obj);
-              for (const k in obj) {
-                if (typeof obj[k] === 'object') {
-                  traverse(obj[k]);
-                }
-              }
-            }
-          };
-          
-          traverse(json);
-        } catch (_) {}
-      });
+            };
 
-      // SPA fallback warning
-      if ((root.querySelector('body')?.text || '').trim().length < 500) {
-        console.warn('SPA detected for URL:', url, '- metadata might be incomplete.');
+            traverse(json);
+          } catch {}
+        });
+
+        // SPA fallback warning
+        if ((root.querySelector('body')?.text || '').trim().length < 500) {
+          console.warn('SPA detected for URL:', url, '- metadata might be incomplete.');
+        }
+
+        title = title || 'Untitled Page';
+        description = description || 'No description provided.';
+
+        return {
+          url,
+          title: title.trim(),
+          description: description.trim(),
+          headings: headings.length > 0 ? headings : undefined,
+          features: features.length > 0 ? features : undefined,
+          paragraphs: paragraphs.length > 0 ? paragraphs : undefined,
+          tables: tables.length > 0 ? tables : undefined,
+          links: links.length > 0 ? links : undefined,
+          faqs: faqs.length > 0 ? faqs : undefined,
+          productInfo
+        };
+      } catch (e) {
+        console.warn('Failed to scrape URL:', url, e);
+        return null;
       }
-      
-      title = title || 'Untitled Page';
-      description = description || 'No description provided.';
-      
-      return { 
-        url, 
-        title: title.trim(), 
-        description: description.trim(),
-        headings: headings.length > 0 ? headings : undefined,
-        features: features.length > 0 ? features : undefined,
-        paragraphs: paragraphs.length > 0 ? paragraphs : undefined,
-        tables: tables.length > 0 ? tables : undefined,
-        links: links.length > 0 ? links : undefined,
-        faqs: faqs.length > 0 ? faqs : undefined,
-        productInfo
-      };
-    } catch (e) {
-      return null;
-    }
-  });
+    });
 
-  const results = await Promise.all(fetchPromises);
-  return results.filter((res) => res !== null) as PageMetadata[];
+    const chunkResults = await Promise.all(chunkPromises);
+    results.push(...chunkResults.filter(Boolean) as PageMetadata[]);
+
+    // Optional delay between chunks to be polite
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  return results;
 }
 
 export function compileLlmsTxt(domainName: string, pages: PageMetadata[]): { markdown: string, tokenCount: number } {
@@ -273,7 +392,7 @@ export function compileLlmsTxt(domainName: string, pages: PageMetadata[]): { mar
     try {
       const parsedUrl = new URL(page.url);
       path = parsedUrl.pathname;
-    } catch (_) {}
+    } catch {}
 
     let entry = `- [${page.title}](${page.url}) \`${path}\`\n`;
     if (page.description && page.description !== 'No description provided.') {

@@ -1,6 +1,6 @@
 import { getEncoding } from 'js-tiktoken';
 
-let encoder: any = null;
+let encoder: ReturnType<typeof getEncoding> | null = null;
 
 export function countTokens(text: string): number {
   if (!encoder) {

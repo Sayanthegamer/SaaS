@@ -1,4 +1,4 @@
-import { fetchSitemapUrls, scrapeMetadata, compileLlmsTxt } from './src/lib/scraper';
+import { compileLlmsTxt } from './src/lib/scraper';
 import { parse } from 'node-html-parser';
 
 const MOCK_HTML = `
@@ -91,8 +91,8 @@ async function testMock() {
   
   // Test our specific scraper logic extracts correctly
   // We can duplicate the extraction logic block here to check it directly
-  let title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
-  let description = root.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+  const title = root.querySelector('title')?.text || root.querySelector('h1')?.text || '';
+  const description = root.querySelector('meta[name="description"]')?.getAttribute('content') || '';
   const headings = root.querySelectorAll('h1, h2, h3').map(h => h.text.trim()).slice(0, 8);
   
   const features: string[] = [];
@@ -133,33 +133,33 @@ async function testMock() {
   });
 
   const faqs: { question: string; answer: string }[] = [];
-  let productInfo: any = undefined;
+  let productInfo: Record<string, string> | undefined = undefined;
 
   root.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
     const json = JSON.parse(script.text.trim());
-    const traverse = (obj: any) => {
+    const traverse = (obj: unknown) => {
       if (Array.isArray(obj)) {
         obj.forEach(traverse);
       } else if (typeof obj === 'object' && obj !== null) {
-        if (obj['@type'] === 'FAQPage' && obj.mainEntity) {
-          const entities = Array.isArray(obj.mainEntity) ? obj.mainEntity : [obj.mainEntity];
-          entities.forEach((entity: any) => {
+        if ((obj as Record<string, unknown>)['@type'] === 'FAQPage' && (obj as Record<string, unknown>).mainEntity) {
+          const entities = Array.isArray((obj as Record<string, unknown>).mainEntity) ? (obj as Record<string, unknown>).mainEntity as Record<string, unknown>[] : [(obj as Record<string, unknown>).mainEntity];
+          (entities as Record<string, unknown>[]).forEach((entity: Record<string, unknown>) => {
             faqs.push({
-              question: entity.name || '',
-              answer: (entity.acceptedAnswer?.text || '').trim()
+              question: typeof entity.name === 'string' ? entity.name : '',
+              answer: typeof (entity.acceptedAnswer as Record<string, unknown>)?.text === 'string' ? ((entity.acceptedAnswer as Record<string, unknown>)?.text as string).trim() : ''
             });
           });
         }
-        if ((obj['@type'] === 'Product' || obj['@type'] === 'SoftwareApplication') && !productInfo) {
-          productInfo = {
-            name: obj.name || '',
-            price: obj.offers?.price || '',
-            currency: obj.offers?.priceCurrency || '',
-            description: obj.description || ''
+        if (((obj as Record<string, unknown>)['@type'] === 'Product' || (obj as Record<string, unknown>)['@type'] === 'SoftwareApplication') && !productInfo) {
+          const o = obj as Record<string, unknown>; productInfo = {
+            name: typeof o.name === 'string' ? o.name : '',
+            price: typeof (o.offers as Record<string, unknown>)?.price === 'string' ? (o.offers as Record<string, unknown>)?.price as string : '',
+            currency: typeof (o.offers as Record<string, unknown>)?.priceCurrency === 'string' ? (o.offers as Record<string, unknown>)?.priceCurrency as string : '',
+            description: typeof o.description === 'string' ? o.description : ''
           };
         }
         for (const k in obj) {
-          if (typeof obj[k] === 'object') traverse(obj[k]);
+          if (typeof (obj as Record<string, unknown>)[k] === 'object') traverse((obj as Record<string, unknown>)[k]);
         }
       }
     };

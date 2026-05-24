@@ -55,7 +55,7 @@ export async function upgradeHtmlForm(
       formCount: forms.length
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('WebMCP parsing failed:', error);
     return { success: false, error: 'Failed to parse HTML structure.' };
   }

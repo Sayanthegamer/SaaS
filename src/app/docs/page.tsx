@@ -210,7 +210,7 @@ export const config = {
                 <div>
                   <h4 className="text-sm font-semibold text-zinc-200">Trigger Crawl & Compile</h4>
                   <p className="text-xs text-zinc-550 leading-relaxed mt-1">
-                    Click **Generate**. Our crawler will look for your website's sitemap, extract headers (`h2`/`h3`) and content lists, and format a compact outline of your website.
+                    Click **Generate**. Our crawler will look for your website&apos;s sitemap, extract headers (`h2`/`h3`) and content lists, and format a compact outline of your website.
                   </p>
                 </div>
               </div>
@@ -365,7 +365,7 @@ export const config = {
               <div className="flex flex-col gap-1.5">
                 <h4 className="font-semibold text-zinc-200">3. Write descriptive meta details</h4>
                 <p className="text-xs text-zinc-500">
-                  Include summaries for complicated products. Instead of just putting "Billing Page", write a short sentence outlining your price ranges and tier details.
+                  Include summaries for complicated products. Instead of just putting &quot;Billing Page&quot;, write a short sentence outlining your price ranges and tier details.
                 </p>
               </div>
             </div>
