@@ -80,6 +80,8 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
 
         const parsedUrl = new URL(url);
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
+        // Ensure we don't fetch local resources (Basic SSRF prevention)
+        if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') return null;
         const safeUrl = parsedUrl.toString();
         const res = await fetch(safeUrl, {
           headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
@@ -217,7 +219,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
                     if (question && answer && faqs.length < 5) {
                       faqs.push({
                         question: question.trim(),
-                        answer: answer.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, '').trim()
+                        answer: answer.replace(/<.*?>/g, '').replace(/&[^;]+;/g, '').trim()
                       });
                     }
                   }
