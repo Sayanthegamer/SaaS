@@ -44,6 +44,7 @@ export async function POST(request: Request) {
   }
 
   try {
+
     const { error } = await (supabase.from('leads').insert as unknown as (data: unknown) => Promise<{error: unknown}>)({ email });
     
     if (error) {

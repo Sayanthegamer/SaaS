@@ -17,6 +17,7 @@ export interface PageMetadata {
 
 const isPrivateIP = (ip: string) => {
   if (!ip) return false;
+  ip = ip.replace(/^\[|\]$/g, '').toLowerCase();
   const parts = ip.split('.');
   if (parts.length === 4) {
     if (parts[0] === '10' || parts[0] === '127') return true;
@@ -34,7 +35,12 @@ export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, 
   if (currentDepth >= maxDepth) return [];
   let sitemapUrl: string;
   try {
-    const parsed = new URL('/sitemap.xml', domainUrl);
+    let parsed: URL;
+    if (domainUrl.endsWith('.xml') || domainUrl.includes('/sitemap')) {
+      parsed = new URL(domainUrl);
+    } else {
+      parsed = new URL('/sitemap.xml', domainUrl);
+    }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return [];
     if (parsed.hostname === 'localhost' || isPrivateIP(parsed.hostname)) return [];
     sitemapUrl = parsed.toString();
@@ -42,10 +48,20 @@ export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, 
     return [];
   }
   
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  let response;
   try {
-    const response = await fetch(sitemapUrl, { 
-      headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' } 
+    response = await fetch(sitemapUrl, {
+      headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
+      signal: controller.signal
     });
+  } catch(e) {
+     clearTimeout(timeoutId);
+     throw e;
+  }
+  clearTimeout(timeoutId);
+  try {
     
     if (!response.ok) throw new Error('Sitemap not found');
     
