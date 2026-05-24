@@ -277,7 +277,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
                     if (question && answer && faqs.length < 5) {
                       faqs.push({
                         question: question.trim(),
-                        answer: answer.replace(/<[^>]*>?/gm, '').replace(/&[^;]+;/g, '').trim()
+                        answer: parse(answer).text.replace(/\s+/g, ' ').trim()
                       });
                     }
                   }
