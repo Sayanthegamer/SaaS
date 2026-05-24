@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-interface LeadRow {
-  email: string;
-}
+
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
@@ -48,7 +46,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { error } = await supabase.from<LeadRow>('leads').insert({ email });
+    const { error } = await (supabase.from('leads').insert as unknown as (data: unknown) => Promise<{error: unknown}>)({ email });
 
     if (error) {
       // If email already registered (unique constraint violation), treat as success to avoid leaking info
