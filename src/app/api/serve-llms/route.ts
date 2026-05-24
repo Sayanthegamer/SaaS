@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseClient: any = null;
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 function getSupabase() {
   if (!supabaseClient) {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   let supabase;
   try {
     supabase = getSupabase();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Supabase initialization failed:', err);
     return new NextResponse('Service Unavailable: Database not configured', { status: 503 });
   }
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       .eq('domain_url', domainUrl)
       .single();
 
-    if (domainError || !domainData || domainData.status !== 'active') {
+    if (domainError || !domainData || (domainData as Record<string, unknown>).status !== 'active') {
       return new NextResponse('Domain not found or inactive', { status: 404 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     const { data: fileData, error: fileError } = await supabase
       .from('llms_files')
       .select('content')
-      .eq('domain_id', domainData.id)
+      .eq('domain_id', (domainData as Record<string, unknown>).id as string)
       .single();
 
     if (fileError || !fileData) {
@@ -62,16 +62,16 @@ export async function GET(request: Request) {
     else if (userAgent.includes('Perplexity')) botName = 'Perplexity';
     else if (userAgent.includes('Googlebot')) botName = 'Googlebot';
 
-    supabase.from('analytics').insert({
-      domain_id: domainData.id,
+    (supabase.from('analytics').insert as unknown as (data: unknown) => Promise<unknown>)({
+      domain_id: (domainData as Record<string, unknown>).id as string,
       bot_name: botName,
       user_agent: userAgent
-    }).then((res: any) => {
-      if (res.error) console.error('Failed to log analytics:', res.error);
+    }).then((res: unknown) => {
+      const r = res as { error?: unknown }; if (r.error) console.error('Failed to log analytics:', r.error);
     });
 
     // 4. Return the file with proper headers for AI agents and strict caching
-    return new NextResponse(fileData.content, {
+    return new NextResponse((fileData as Record<string, unknown>).content as string, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',

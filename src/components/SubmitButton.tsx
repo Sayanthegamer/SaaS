@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 interface SubmitButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  formAction?: any;
+  formAction?: string | ((formData: FormData) => void) | undefined;
 }
 
 export default function SubmitButton({ children, formAction, className = '', ...props }: SubmitButtonProps) {

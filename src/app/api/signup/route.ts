@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseClient: any = null;
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 function getSupabase() {
   if (!supabaseClient) {
@@ -38,26 +38,26 @@ export async function POST(request: Request) {
   let supabase;
   try {
     supabase = getSupabase();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Supabase initialization failed:', err);
     return new NextResponse('Service Unavailable: Database not configured.', { status: 503 });
   }
 
   try {
-    const { error } = await supabase.from('leads').insert({ email });
+    const { error } = await (supabase.from('leads').insert as unknown as (data: unknown) => Promise<{error: unknown}>)({ email });
     
     if (error) {
       // If email already registered (unique constraint violation), treat as success to avoid leaking/error page
-      if (error.code === '23505') {
+      if ((error as {code?: string}).code === '23505') {
         return NextResponse.redirect(new URL('/?status=success', request.url), 303);
       }
       throw error;
     }
 
     return NextResponse.redirect(new URL('/?status=success', request.url), 303);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Early access registration failed:', error);
-    const errorMessage = error?.message || JSON.stringify(error) || 'Unknown error';
+    const errObj = error as { message?: string }; const errorMessage = errObj?.message || JSON.stringify(error) || 'Unknown error';
     return new NextResponse(`Internal Server Error: Registration failed. Details: ${errorMessage}`, { status: 500 });
   }
 }

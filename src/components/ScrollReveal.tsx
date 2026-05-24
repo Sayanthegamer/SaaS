@@ -15,14 +15,14 @@ export default function ScrollReveal({ children, className = '', delayClass = ''
   useEffect(() => {
     // If IntersectionObserver is not supported, reveal instantly
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-      setIsVisible(true);
+      setTimeout(() => setIsVisible(true), 0);
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true);
+          setTimeout(() => setIsVisible(true), 0);
           if (ref.current) {
             observer.unobserve(ref.current);
           }
