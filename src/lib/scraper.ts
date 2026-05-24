@@ -78,7 +78,8 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        const res = await fetch(url, {
+        const safeUrl = new URL(url).toString();
+        const res = await fetch(safeUrl, {
           headers: { 'User-Agent': 'Agentic-SEO-Bot/1.0' },
           signal: controller.signal
         });
@@ -214,7 +215,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
                     if (question && answer && faqs.length < 5) {
                       faqs.push({
                         question: question.trim(),
-                        answer: answer.replace(/<[^>]*>/g, '').trim()
+                        answer: answer.replace(/<[a-zA-Z\/][^>]*>/g, '').trim()
                       });
                     }
                   }
@@ -282,7 +283,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
           productInfo
         };
       } catch (e) {
-        console.warn(`Failed to scrape ${url}:`, e);
+        console.warn('Failed to scrape URL:', url, e);
         return null;
       }
     });
