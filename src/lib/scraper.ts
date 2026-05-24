@@ -15,9 +15,32 @@ export interface PageMetadata {
   productInfo?: { name?: string; price?: string; currency?: string; description?: string };
 }
 
+const isPrivateIP = (ip: string) => {
+  if (!ip) return false;
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    if (parts[0] === '10' || parts[0] === '127') return true;
+    if (parts[0] === '172' && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) return true;
+    if (parts[0] === '192' && parts[1] === '168') return true;
+    if (parts[0] === '169' && parts[1] === '254') return true;
+  }
+  if (ip.includes(':')) {
+    if (ip === '::1' || ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd') || ip.toLowerCase().startsWith('fe80')) return true;
+  }
+  return false;
+};
+
 export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, currentDepth: number = 0): Promise<string[]> {
   if (currentDepth >= maxDepth) return [];
-  const sitemapUrl = new URL('/sitemap.xml', domainUrl).toString();
+  let sitemapUrl: string;
+  try {
+    const parsed = new URL('/sitemap.xml', domainUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return [];
+    if (parsed.hostname === 'localhost' || isPrivateIP(parsed.hostname)) return [];
+    sitemapUrl = parsed.toString();
+  } catch(e) {
+    return [];
+  }
   
   try {
     const response = await fetch(sitemapUrl, { 
@@ -44,7 +67,16 @@ export async function fetchSitemapUrls(domainUrl: string, maxDepth: number = 3, 
       const CONCURRENCY_LIMIT = 3;
       for (let i = 0; i < sitemapNodes.length; i += CONCURRENCY_LIMIT) {
         const chunk = sitemapNodes.slice(i, i + CONCURRENCY_LIMIT);
-        const chunkPromises = chunk.map((node: {loc: string}) => fetchSitemapUrls(node.loc, maxDepth, currentDepth + 1));
+        const chunkPromises = chunk.map((node: {loc: string}) => {
+          try {
+            const parsed = new URL(node.loc);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return Promise.resolve([]);
+            if (parsed.hostname === 'localhost' || isPrivateIP(parsed.hostname)) return Promise.resolve([]);
+            return fetchSitemapUrls(parsed.toString(), maxDepth, currentDepth + 1);
+          } catch(e) {
+            return Promise.resolve([]);
+          }
+        });
         const chunkResults = await Promise.all(chunkPromises);
         nestedUrlsArrays.push(...chunkResults);
       }
@@ -82,12 +114,8 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
 
     const chunkPromises = chunk.map(async (url) => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
         const parsedUrl = new URL(url);
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
-        // Ensure we don't fetch local resources (Basic SSRF prevention)
 
         const isPrivateIP = (ip: string) => {
            if (!ip) return false;
@@ -98,13 +126,17 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
              if (parts[0] === '192' && parts[1] === '168') return true;
              if (parts[0] === '169' && parts[1] === '254') return true;
            }
-           if (ip.includes(':')) { // IPv6 basic check
+           if (ip.includes(':')) {
              if (ip === '::1' || ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd') || ip.toLowerCase().startsWith('fe80')) return true;
            }
            return false;
         };
         if (parsedUrl.hostname === 'localhost' || isPrivateIP(parsedUrl.hostname)) return null;
         const safeUrl = parsedUrl.toString();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         let res;
         try {
           res = await fetch(safeUrl, {
@@ -245,7 +277,7 @@ export async function scrapeMetadata(urls: string[]): Promise<PageMetadata[]> {
                     if (question && answer && faqs.length < 5) {
                       faqs.push({
                         question: question.trim(),
-                        answer: parse(answer).text.trim()
+                        answer: answer.replace(/<.*?>/g, '').replace(/&[^;]+;/g, '').trim()
                       });
                     }
                   }

@@ -43,6 +43,7 @@ export async function POST(request: Request) {
      const body = await verifyQStashSignature(request);
      domainId = body.domainId;
      domainUrl = body.domainUrl;
+     if (!domainId || !domainUrl) return NextResponse.json({ error: 'Bad Request: missing domainId or domainUrl' }, { status: 400 });
   } catch (error) {
      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
     if (dbError) throw dbError;
 
     // Mark as complete
-    const { error: updateCompleteError } = await supabase.from('domains').update({ status: 'completed' }).eq('id', domainId);
+    const { error: updateCompleteError } = await supabase.from('domains').update({ status: 'active' }).eq('id', domainId);
     if (updateCompleteError) {
         console.error('Failed to update domain status to completed:', updateCompleteError);
         throw updateCompleteError;
